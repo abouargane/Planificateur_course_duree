@@ -331,10 +331,27 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
 
   <div class="card">
     <div class="ctitle">Fréquence Cardiaque</div>
-    <div class="field"><label>FC Maximale (b/min)</label><input type="number" id="fcMax" value="199" min="100" max="250" oninput="calculate()"><div class="hint">FC max ≈ 220 - age</div></div>
+    <div class="g2">
+      <div class="field">
+        <label>Âge (ans)</label>
+        <input type="number" id="age" value="30" min="10" max="90" oninput="calcFCMax()">
+      </div>
+      <div class="field">
+        <label>Sexe</label>
+        <select id="sexe" onchange="calcFCMax()">
+          <option value="M">♂ Masculin</option>
+          <option value="F">♀ Féminin</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>FC Maximale (b/min)</label>
+      <input type="number" id="fcMax" value="190" min="100" max="250" oninput="calculate()">
+      <div class="hint" id="fcMaxHint">Calculée : 220 − 30 = <strong>190</strong></div>
+    </div>
     <div class="field"><label>FC Repos (b/min)</label><input type="number" id="fcRepos" value="74" min="30" max="120" oninput="calculate()"></div>
-    <div class="field"><label>% FC Entrainement</label><input type="number" id="pctFC" value="95" min="50" max="100" oninput="calculate()"></div>
-    <div class="field"><label>FC Entraînement (b/min)</label><input type="number" id="fcEntrain" readonly class="ro-red"><div class="hint">Karvonen : FCR + % x (FCmax - FCR)</div></div>
+    <div class="field"><label>% FC Entraînement</label><input type="number" id="pctFC" value="95" min="50" max="100" oninput="calculate()"></div>
+    <div class="field"><label>FC Entraînement (b/min)</label><input type="number" id="fcEntrain" readonly class="ro-red"><div class="hint">Karvonen : FCR + % × (FCmax − FCR)</div></div>
   </div>
 
   <div class="card">
@@ -416,8 +433,8 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
   <div class="tlrow" id="timelineRow"></div>
   <div class="tlleg">
     <div class="tllegit"><div class="tllegdot" style="background:var(--accent)"></div>Effort</div>
-    <div class="tllegit"><div class="tllegdot" style="background:var(--green)"></div>Recup entre rep.</div>
-    <div class="tllegit"><div class="tllegdot" style="background:var(--orange)"></div>Recup entre series</div>
+    <div class="tllegit"><div class="tllegdot" style="background:var(--green)"></div>Récup. entre rép.</div>
+    <div class="tllegit"><div class="tllegdot" style="background:var(--orange)"></div>Récup. entre séries</div>
   </div>
   <div class="tltot" id="timelineTotal"></div>
 </div>
@@ -463,8 +480,8 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
           <th rowspan="2" class="gs">FC<br>b/min</th>
           <th colspan="2" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);">Effort planifié</th>
           <th colspan="2" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);" class="gs">Piste</th>
-          <th colspan="3" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);" class="gs">Recuperation (ratio 1:1)</th>
-          <th colspan="2" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);">Bilan seance</th>
+          <th colspan="3" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);" class="gs">Récupération (ratio 1:1)</th>
+          <th colspan="2" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);">Bilan séance</th>
         </tr>
         <tr class="sh">
           <th>Distance (m)</th><th class="gs">Temps effort</th>
@@ -481,7 +498,7 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
     <div class="tlegit"><div class="tlegdot" style="background:#fff;border:1px solid #e2dfd8;"></div>10-14 Débutant</div>
     <div class="tlegit"><div class="tlegdot" style="background:#f0fdf4;border:1px solid #bbf7d0;"></div>14.5-17 Intermédiaire</div>
     <div class="tlegit"><div class="tlegdot" style="background:#fff7ed;border:1px solid #fed7aa;"></div>17.5-19 Avancé</div>
-    <div class="tlegit"><div class="tlegdot" style="background:#fef2f2;border:1px solid #fecaca;"></div>19.5-20 Elite</div>
+    <div class="tlegit"><div class="tlegdot" style="background:#fef2f2;border:1px solid #fecaca;"></div>19.5-20 Élite</div>
   </div>
 </div>
 
@@ -523,6 +540,17 @@ function repLbl(s){
   return s<=15?'15"':s<=30?'30"':s<=45?'45"':s===60?"1'00\"":s===90?"1'30\"":s===120?"2'00\"":s===150?"2'30\"":"3'00\"";
 }
 
+
+function calcFCMax(){
+  var age  = parseInt(document.getElementById('age').value)  || 30;
+  var sexe = document.getElementById('sexe').value;
+  var base = sexe === 'F' ? 226 : 220;
+  var fcm  = base - age;
+  document.getElementById('fcMax').value = fcm;
+  var hint = document.getElementById('fcMaxHint');
+  hint.innerHTML = 'Calculée : ' + base + ' − ' + age + ' = <strong>' + fcm + '</strong>';
+  calculate();
+}
 function setMode(m){
   mode=m;
   document.getElementById('input-time').style.display=m==='time'?'block':'none';
@@ -775,6 +803,7 @@ function copyToClipboard(){
 }
 
 document.getElementById('dateSeance').value=new Date().toISOString().split('T')[0];
+calcFCMax();
 document.getElementById('emailDisplay').textContent=atob('YS5ib3VhcmdhbmVAY3JtZWZzbS5hYy5tYQ==');
 calculate();
 </script>
