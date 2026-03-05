@@ -752,7 +752,10 @@ function buildTable(){
     if(mode==='time'&&eff>0){dist=am*eff;te=eff;}
     else{var d=parseFloat(document.getElementById('effortDist').value)||1140;dist=d;te=am>0?d/am:0;}
     var rr=repAuto(te,pvf);
-    var tTot=ns*nr*te+ns*(nr-1)*rr+(ns-1)*ss;
+    var continu=(ns===1&&nr===1), uneSerie=(ns===1&&nr>1);
+    var recuRep  = continu ? 0 : rr;
+    var recuSerie= (continu||uneSerie) ? 0 : ss;
+    var tTot=ns*nr*te + ns*(nr-1)*recuRep + (ns-1)*recuSerie;
     var nt=tp>0?dist/tp:0,tt=nt>0?te/nt:0,vol=ns*nr*dist;
     var ia=Math.abs(vma-cv)<0.01;
     var rc=ia?'ath':vma<=14?'':vma<=17?'z15':vma<=19?'z18':'z20';
@@ -765,9 +768,9 @@ function buildTable(){
       '<td class="co gs">'+mmss(te)+'</td>'+
       '<td>'+nt.toFixed(1)+'</td>'+
       '<td class="co gs">'+mmss(tt)+'</td>'+
-      '<td class="gs" style="font-size:10px;font-weight:700;color:'+(sp?'#dc2626':'#16a34a')+'">'+(sp?'Supra-max':'Sous-max')+'</td>'+
-      '<td class="gs '+(sp?'crs':'cg')+'">'+repLbl(rr)+'</td>'+
-      '<td class="co">'+mmss(ss)+'</td>'+
+      '<td class="gs" style="font-size:10px;font-weight:700;color:'+(sp?'#dc2626':'#16a34a')+'">'+(continu?'Continu':sp?'Supra-max':'Sous-max')+'</td>'+
+      '<td class="gs '+(sp?'crs':'cg')+'">'+(continu?'—':repLbl(recuRep))+'</td>'+
+      '<td class="co">'+((continu||uneSerie)?'—':mmss(recuSerie))+'</td>'+
       '<td class="gs ca">'+Math.round(vol).toLocaleString('fr-FR')+'</td>'+
       '<td class="cp">'+hms(tTot)+'</td>';
     tb.appendChild(tr);
@@ -787,7 +790,10 @@ function generateSummary(){
   var rs=parseInt(document.getElementById('recuRepSlider').value)||90;
   var ss=parseInt(document.getElementById('recuSerieSlider').value)||270;
   var eff=mode==='time'?(parseFloat(document.getElementById('effortMin').value)||0)*60+(parseFloat(document.getElementById('effortSec').value)||0):0;
-  var tt=ns*nr*eff+ns*(nr-1)*rs+(ns-1)*ss;
+  var continu=(ns===1&&nr===1), uneSerie=(ns===1&&nr>1);
+  var recuRep  = continu ? 0 : rs;
+  var recuSerie= (continu||uneSerie) ? 0 : ss;
+  var tt=ns*nr*eff + ns*(nr-1)*recuRep + (ns-1)*recuSerie;
   document.getElementById('summaryName').textContent=nom;
   var its=[
     {l:'Athlète',v:nom,c:''},
@@ -797,15 +803,15 @@ function generateSummary(){
     {l:'Allure',v:document.getElementById('allure').value+' km/h',c:''},
     {l:'Pace',v:document.getElementById('allureMinKm').value+' /km',c:''},
     {l:'FC max/repos',v:document.getElementById('fcMax').value+'/'+document.getElementById('fcRepos').value,c:''},
-    {l:'FC entrainement',v:document.getElementById('fcEntrain').value+' b/min',c:''},
-    {l:'Zone',v:pv>100?'Supra-maximale':'Sous-maximale',c:pv>100?'':'sig'},
+    {l:'FC entraînement',v:document.getElementById('fcEntrain').value+' b/min',c:''},
+    {l:'Zone',v:continu?'Effort continu':pv>100?'Supra-maximale':'Sous-maximale',c:continu?'':'sig'},
     {l:"Distance d\u2019effort",v:document.getElementById('m-dist').textContent+' m',c:'sia'},
     {l:'Temps effort',v:document.getElementById('m-temps').textContent,c:''},
     {l:'Nb tours',v:document.getElementById('nbToursField').value,c:''},
     {l:'Temps / tour',v:document.getElementById('tempsTour').value,c:''},
-    {l:'Séries × Rép.',v:ns+' x '+nr,c:''},
-    {l:'Récup. / rép.',v:repLbl(rs)+' (1:1)',c:'sig'},
-    {l:'Récup. / série',v:mmss(ss),c:''},
+    {l:'Séries × Rép.',v:ns+' × '+nr,c:''},
+    {l:'Récup. / rép.',v:continu?'—':repLbl(rs)+' (1:1)',c:continu?'':'sig'},
+    {l:'Récup. / série',v:(continu||uneSerie)?'—':mmss(ss),c:''},
     {l:'Volume total',v:document.getElementById('volume').value+' m',c:'sig'},
     {l:'Durée séance',v:hms(tt),c:'sip'},
   ];
