@@ -322,7 +322,7 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
 <div class="mrow">
   <div class="metric"><span class="mval" id="m-allure">--</span><span class="munit">km/h</span><span class="mname">Allure Travail</span></div>
   <div class="metric r"><span class="mval" id="m-fc">--</span><span class="munit">b/min</span><span class="mname">FC Cible (Karvonen)</span></div>
-  <div class="metric g"><span class="mval" id="m-dist">--</span><span class="munit">metres</span><span class="mname">Distance d'effort</span></div>
+  <div class="metric g"><span class="mval" id="m-dist">--</span><span class="munit">metres</span><span class="mname">Distance / rép.</span></div>
   <div class="metric o"><span class="mval" id="m-temps">--</span><span class="munit">mm:ss</span><span class="mname">Temps à réaliser</span></div>
 </div>
 
@@ -500,7 +500,7 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
           <th colspan="2" style="border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);">Bilan séance</th>
         </tr>
         <tr class="sh">
-          <th>Distance (m)</th><th class="gs">Temps effort</th>
+          <th>Dist./rép. (m)</th><th class="gs">Temps effort</th>
           <th>Nb tours</th><th class="gs">Temps / tour</th>
           <th class="gs">Zone intensité</th><th class="gs">Récup. / rép.</th><th>Récup. / série</th>
           <th class="gs">Volume total (m)</th><th>Durée séance</th>
@@ -776,7 +776,7 @@ function buildTable(){
   var pv=parseFloat(document.getElementById('pctVma').value)||95;
   var eff=0;
   var effDist=parseFloat(document.getElementById('effortDist').value)||1140;
-  if(mode==='time')eff=(parseFloat(document.getElementById('effortMin').value)||6)*60+(parseFloat(document.getElementById('effortSec').value)||0);
+  if(mode==='time')eff=(parseFloat(document.getElementById('effortMin').value)||0)*60+(parseFloat(document.getElementById('effortSec').value)||0);
   var tb=document.getElementById('vmaTableBody'); tb.innerHTML='';
   var steps=[];for(var v=10;v<=20.01;v+=0.5)steps.push(Math.round(v*10)/10);
 
@@ -848,7 +848,7 @@ function generateSummary(){
     {l:'FC max / FC repos',v:document.getElementById('fcMax').value+' / '+document.getElementById('fcRepos').value+' b/min',c:''},
     {l:'FC Cible Karvonen',v:document.getElementById('fcEntrain').value+' b/min',c:''},
     {l:'Zone',v:continu?'Effort continu':pv>100?'Supra-maximale':'Sous-maximale',c:continu?'':'sig'},
-    {l:"Distance d\u2019effort",v:document.getElementById('m-dist').textContent+' m',c:'sia'},
+    {l:"Distance / rép.",v:document.getElementById('m-dist').textContent+' m',c:'sia'},
     {l:'Temps effort',v:document.getElementById('m-temps').textContent,c:''},
     {l:'Nb tours',v:document.getElementById('nbToursField').value,c:''},
     {l:'Temps / tour',v:document.getElementById('tempsTour').value,c:''},
@@ -961,12 +961,12 @@ function sendEmail(){
   var n=document.getElementById('nomAthlète').value||'Athlète';
   var d=document.getElementById('dateSeance').value||'';
   var sub=encodeURIComponent('Bilan seance - '+n+' - '+d);
-  var b=encodeURIComponent('Athlète : '+n+'\nDate: '+d+'\nVMA: '+document.getElementById('vma').value+' km/h\n%VMA: '+document.getElementById('pctVma').value+'%\nAllure: '+document.getElementById('allure').value+' km/h ('+document.getElementById('allureMinKm').value+'/km)\nFC: '+document.getElementById('fcEntrain').value+' b/min\nDistance: '+document.getElementById('m-dist').textContent+' m\nTemps: '+document.getElementById('m-temps').textContent+'\nTours: '+document.getElementById('nbToursField').value+'\nT/tour: '+document.getElementById('tempsTour').value+'\nSeries: '+document.getElementById('nbSeries').value+' x '+document.getElementById('nbReps').value+'\nVolume: '+document.getElementById('volume').value+' m');
+  var b=encodeURIComponent('Athlète : '+n+'\nDate: '+d+'\nVMA: '+document.getElementById('vma').value+' km/h\n%VMA: '+document.getElementById('pctVma').value+'%\nAllure: '+document.getElementById('allure').value+' km/h ('+document.getElementById('allureMinKm').value+'/km)\nFC: '+document.getElementById('fcEntrain').value+' b/min\nDistance/rép: '+document.getElementById('m-dist').textContent+' m\nTemps: '+document.getElementById('m-temps').textContent+'\nTours: '+document.getElementById('nbToursField').value+'\nT/tour: '+document.getElementById('tempsTour').value+'\nSeries: '+document.getElementById('nbSeries').value+' x '+document.getElementById('nbReps').value+'\nVolume: '+document.getElementById('volume').value+' m');
   window.location.href=atob('bWFpbHRvOmEuYm91YXJnYW5lQGNybWVmc20uYWMubWE=')+'?subject='+sub+'&body='+b;
 }
 
 function copyToClipboard(){
-  var t=['BILAN DE SÉANCE','Athlète : '+document.getElementById('nomAthlète').value,'VMA: '+document.getElementById('vma').value+' km/h | %VMA: '+document.getElementById('pctVma').value+'%','Allure: '+document.getElementById('allure').value+' km/h | Pace: '+document.getElementById('allureMinKm').value,'FC: '+document.getElementById('fcEntrain').value+' b/min','Distance: '+document.getElementById('m-dist').textContent+' m | Temps: '+document.getElementById('m-temps').textContent,'Tours: '+document.getElementById('nbToursField').value+' | T/tour: '+document.getElementById('tempsTour').value,'Series: '+document.getElementById('nbSeries').value+' x '+document.getElementById('nbReps').value,'Volume: '+document.getElementById('volume').value+' m'].join('\n');
+  var t=['BILAN DE SÉANCE','Athlète : '+document.getElementById('nomAthlète').value,'VMA: '+document.getElementById('vma').value+' km/h | %VMA: '+document.getElementById('pctVma').value+'%','Allure: '+document.getElementById('allure').value+' km/h | Pace: '+document.getElementById('allureMinKm').value,'FC: '+document.getElementById('fcEntrain').value+' b/min','Distance/rép: '+document.getElementById('m-dist').textContent+' m | Temps: '+document.getElementById('m-temps').textContent,'Tours: '+document.getElementById('nbToursField').value+' | T/tour: '+document.getElementById('tempsTour').value,'Series: '+document.getElementById('nbSeries').value+' x '+document.getElementById('nbReps').value,'Volume: '+document.getElementById('volume').value+' m'].join('\n');
   navigator.clipboard.writeText(t).then(function(){
     document.getElementById('copyToast').style.display='block';
     document.getElementById('btnCopy').textContent='Copie!';
