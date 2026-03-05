@@ -321,7 +321,7 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
 
 <div class="mrow">
   <div class="metric"><span class="mval" id="m-allure">--</span><span class="munit">km/h</span><span class="mname">Allure Travail</span></div>
-  <div class="metric r"><span class="mval" id="m-fc">--</span><span class="munit">b/min</span><span class="mname">FC Entrainement</span></div>
+  <div class="metric r"><span class="mval" id="m-fc">--</span><span class="munit">b/min</span><span class="mname">FC Cible (Karvonen)</span></div>
   <div class="metric g"><span class="mval" id="m-dist">--</span><span class="munit">metres</span><span class="mname">Distance d'effort</span></div>
   <div class="metric o"><span class="mval" id="m-temps">--</span><span class="munit">mm:ss</span><span class="mname">Temps à réaliser</span></div>
 </div>
@@ -349,15 +349,15 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
       <input type="number" id="fcMax" value="190" min="100" max="250" oninput="calculate()">
       <div class="hint" id="fcMaxHint">Calculée : 220 − 30 = <strong>190</strong></div>
     </div>
-    <div class="field"><label>FC Repos (b/min)</label><input type="number" id="fcRepos" value="74" min="30" max="120" oninput="calculate()"></div>
-    <div class="field"><label>% FC Entraînement</label><input type="number" id="pctFC" value="95" min="50" max="100" oninput="calculate()"></div>
-    <div class="field"><label>FC Entraînement (b/min)</label><input type="number" id="fcEntrain" readonly class="ro-red"><div class="hint">Karvonen : FCR + % × (FCmax − FCR)</div></div>
+    <div class="field"><label>FC Repos (b/min)</label><input type="number" id="fcRepos" value="74" min="30" max="120" oninput="calculate()"><div class="hint">FC de Réserve = FC max − FC repos</div></div>
+    <input type="hidden" id="pctFC" value="95">
+    <div class="field"><label>FC Cible Karvonen (b/min)</label><input type="number" id="fcEntrain" readonly class="ro-red"><div class="hint">FC repos + (% × FC de Réserve)</div></div>
   </div>
 
   <div class="card">
     <div class="ctitle">VMA &amp; Allure</div>
     <div class="field"><label>VMA (km/h)</label><input type="number" id="vma" value="12" min="5" max="25" step="0.5" oninput="calculate()"></div>
-    <div class="field"><label>% Planifié de VMA</label><input type="number" id="pctVma" value="95" min="50" max="120" step="1" oninput="calculate()"></div>
+    <div class="field"><label>% VMA Planifié</label><input type="number" id="pctVma" value="95" min="50" max="120" step="1" oninput="calculate()"><div class="hint">Intensité de course = fraction de votre VMA</div></div>
     <div class="field"><label>Allure Travail (km/h)</label><input type="number" id="allure" readonly class="ro-blue"></div>
     <div class="field"><label>Allure (min/km)</label><input type="text" id="allureMinKm" readonly class="ro-green"></div>
   </div>
@@ -457,6 +457,10 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
     </div>
   </div>
   <div class="sumgrid" id="summaryGrid"></div>
+
+  <!-- Visualisation timeline dans le bilan -->
+  <div id="bilanTimeline" style="display:none;margin-top:16px;border-top:1px solid #e2e8f0;padding-top:16px;"></div>
+
   <div id="copyToast">&#10003; Bilan copié dans le presse-papiers</div>
 </div>
 
@@ -467,13 +471,18 @@ footer.cp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;b
   <div class="ttbar">
     <div>
       <div class="ttit">Paramètres Effort &amp; Récupération <span>VMA 10-20 · pas 0,5</span></div>
-      <p style="font-size:11px;color:var(--muted);margin-top:2px;">FC max=<span id="t-fcmax">199</span> · FC repos=<span id="t-fcrepos">74</span> · %FC=<span id="t-pct">95</span>% · Effort=<span id="t-effort">6min</span></p>
+      <p style="font-size:11px;color:var(--muted);margin-top:2px;">FC max=<span id="t-fcmax">199</span> · FC repos=<span id="t-fcrepos">74</span> · %FC de Réserve=<span id="t-pct">95</span>% · Effort=<span id="t-effort">6min</span></p>
     </div>
-    <div class="tfilt"><label>% VMA :</label>
-      <select id="filterPct" onchange="buildTable()">
-        <option value="80">80%</option><option value="85">85%</option><option value="90">90%</option>
-        <option value="95" selected>95%</option><option value="100">100%</option>
-        <option value="105">105%</option><option value="110">110%</option>
+    <div class="tfilt"><label>% VMA tableau :</label>
+      <select id="filterPct" onchange="calculate()">
+        <option value="50">50%</option><option value="55">55%</option>
+        <option value="60">60%</option><option value="65">65%</option>
+        <option value="70">70%</option><option value="75">75%</option>
+        <option value="80">80%</option><option value="85">85%</option>
+        <option value="90">90%</option><option value="95" selected>95%</option>
+        <option value="100">100%</option><option value="105">105%</option>
+        <option value="110">110%</option><option value="115">115%</option>
+        <option value="120">120%</option>
       </select>
     </div>
   </div>
@@ -548,6 +557,7 @@ function repLbl(s){
 }
 
 
+
 function calcFCMax(){
   var age  = parseInt(document.getElementById('age').value)  || 30;
   var sexe = document.getElementById('sexe').value;
@@ -591,7 +601,26 @@ function calculate(){
   var ns=parseInt(document.getElementById('nbSeries').value)||1;
   var nr=parseInt(document.getElementById('nbReps').value)||1;
 
+  // ── Synchroniser le filtre tableau avec % VMA planifié ──
+  // Seulement si l'utilisateur n'a pas modifié manuellement le filtre
+  // On cherche l'option la plus proche dans le select
+  var sel=document.getElementById('filterPct');
+  var opts=Array.from(sel.options).map(function(o){return parseInt(o.value);});
+  var closest=opts.reduce(function(a,b){return Math.abs(b-pv)<Math.abs(a-pv)?b:a;});
+  // Ne synchroniser que si la source du changement est pctVma (pas le select lui-même)
+  if(document.activeElement.id!=='filterPct'){
+    sel.value=closest;
+  }
+
   var al=vma*(pv/100);
+
+  // ── %FC auto-calculé depuis %VMA (Swain et al., 1994 : %FCR = 0.64×%VMA + 37) ──
+  // Seulement si le champ %FC n'est pas actif (l'athlète peut l'overrider manuellement)
+  if(document.activeElement.id !== 'pctFC'){
+    var pfcAuto = Math.min(100, Math.round(0.64*pv + 37));
+    document.getElementById('pctFC').value = pfcAuto;
+    pfc = pfcAuto;
+  }
   var fc=karv(fmax,frep,pfc);
 
   document.getElementById('allure').value=al>0?al.toFixed(2):'';
@@ -635,7 +664,7 @@ function calculate(){
   var znames=['Récupération active','Endurance fondamentale','Aérobique','Seuil lactique','VO2max'];
   var zl=document.getElementById('zoneLabel');
   var zi=zdefs.findIndex(function(z){return pfc>=z.mn&&pfc<z.mx;}); if(zi<0)zi=4;
-  zl.textContent=zdefs[zi].z+' — '+znames[zi]+' ('+pfc+'% FC Réserve)';
+  zl.textContent=zdefs[zi].z+' — '+znames[zi]+' ('+pfc+'% FC de Réserve)';
   zl.style.color=zdefs[zi].c;
 
   var chips=document.getElementById('zoneChips'); chips.innerHTML='';
@@ -711,19 +740,22 @@ function buildTimeline(){
   var eff=0;
   if(mode==='time'){eff=(parseFloat(document.getElementById('effortMin').value)||0)*60+(parseFloat(document.getElementById('effortSec').value)||0);}
   else{var d=parseFloat(document.getElementById('effortDist').value)||0,al=parseFloat(document.getElementById('allure').value)||0;eff=(al>0&&d>0)?d/(al/3.6):0;}
+  // Gérer continu/uneSerie dans timeline
+  var cT=(ns===1&&nr===1),uT=(ns===1&&nr>1);
+  var rs_eff=cT?0:rs, ss_eff=(cT||uT)?0:ss;
 
   var row=document.getElementById('timelineRow'); row.innerHTML='';
-  var md=Math.min(ns,4),mr=Math.min(nr,5),mt=Math.max(eff,rs,ss,1);
+  var md=Math.min(ns,4),mr=Math.min(nr,5),mt=Math.max(eff,rs_eff,ss_eff,1);
   function sc(s){return Math.max(28,Math.round((s/mt)*80));}
   for(var s=0;s<md;s++){
     for(var r=0;r<mr;r++){
       var e=document.createElement('div');e.className='tlb tleff';e.style.width=sc(eff)+'px';e.textContent=mmss(eff);row.appendChild(e);
-      if(r<nr-1){var rc=document.createElement('div');rc.className='tlb tlrep';rc.style.width=sc(rs)+'px';rc.textContent=mmss(rs);row.appendChild(rc);}
+      if(r<nr-1&&rs_eff>0){var rc=document.createElement('div');rc.className='tlb tlrep';rc.style.width=sc(rs_eff)+'px';rc.textContent=mmss(rs_eff);row.appendChild(rc);}
     }
-    if(s<md-1){var rs2=document.createElement('div');rs2.className='tlb tlser';rs2.style.width=sc(ss)+'px';rs2.textContent=mmss(ss);row.appendChild(rs2);}
+    if(s<md-1&&ss_eff>0){var rs2=document.createElement('div');rs2.className='tlb tlser';rs2.style.width=sc(ss_eff)+'px';rs2.textContent=mmss(ss_eff);row.appendChild(rs2);}
     if(ns>md&&s===md-1){var mo=document.createElement('div');mo.style.cssText='display:flex;align-items:center;padding:0 8px;font-size:11px;color:var(--muted);';mo.textContent='+'+(ns-md)+' serie(s)...';row.appendChild(mo);}
   }
-  var te=ns*nr*eff,tr=ns*(nr-1)*rs,trs=(ns-1)*ss,tt=te+tr+trs;
+  var te=ns*nr*eff,tr=ns*(nr-1)*rs_eff,trs=(ns-1)*ss_eff,tt=te+tr+trs;
   var vol=ns*nr*(parseFloat(document.getElementById('m-dist').textContent)||0);
   var td=document.getElementById('timelineTotal');
   var its=[{v:hms(te),l:'Temps effort total',c:'var(--accent)'},{v:hms(tr),l:'Récup. entre rép.',c:'var(--green)'},{v:hms(trs),l:'Récup. entre séries',c:'var(--orange)'},{v:hms(tt),l:'Durée séance totale',c:'var(--purple)'},{v:Math.round(vol).toLocaleString('fr-FR')+' m',l:'Volume total',c:'var(--indigo)'}];
@@ -736,29 +768,34 @@ function buildTable(){
   var pfc=parseFloat(document.getElementById('pctFC').value)||95;
   var pvf=parseFloat(document.getElementById('filterPct').value)||95;
   var tp=parseFloat(document.getElementById('tourPiste').value)||400;
-  var ns=parseInt(document.getElementById('nbSeries').value)||3;
-  var nr=parseInt(document.getElementById('nbReps').value)||4;
+  var ns=parseInt(document.getElementById('nbSeries').value)||1;
+  var nr=parseInt(document.getElementById('nbReps').value)||1;
   var ss=parseInt(document.getElementById('recuSerieSlider').value)||270;
+  var rrSlider=parseInt(document.getElementById('recuRepSlider').value)||90;
   var cv=parseFloat(document.getElementById('vma').value)||0;
+  var pv=parseFloat(document.getElementById('pctVma').value)||95;
   var eff=0;
+  var effDist=parseFloat(document.getElementById('effortDist').value)||1140;
   if(mode==='time')eff=(parseFloat(document.getElementById('effortMin').value)||6)*60+(parseFloat(document.getElementById('effortSec').value)||0);
-
   var tb=document.getElementById('vmaTableBody'); tb.innerHTML='';
   var steps=[];for(var v=10;v<=20.01;v+=0.5)steps.push(Math.round(v*10)/10);
 
   steps.forEach(function(vma){
-    var al=vma*(pvf/100),fc=karv(fmax,frep,pfc),pa=pace(al),am=al/3.6,sp=pvf>100;
+    var al=vma*(pvf/100),am=al/3.6,sp=pvf>100;
+    var isAthRow=Math.abs(vma-cv)<0.01;
+    var fc=karv(fmax,frep,pfc), pa=pace(al);
     var dist=0,te=0;
     if(mode==='time'&&eff>0){dist=am*eff;te=eff;}
-    else{var d=parseFloat(document.getElementById('effortDist').value)||1140;dist=d;te=am>0?d/am:0;}
+    else{dist=effDist;te=am>0?effDist/am:0;}
     var rr=repAuto(te,pvf);
     var continu=(ns===1&&nr===1), uneSerie=(ns===1&&nr>1);
-    var recuRep  = continu ? 0 : rr;
+    // Ligne athlète : récup depuis slider (valeur réelle), autres → repAuto
+    var rrAthFinal = isAthRow ? rrSlider : rr;
+    var recuRep  = continu ? 0 : rrAthFinal;
     var recuSerie= (continu||uneSerie) ? 0 : ss;
     var tTot=ns*nr*te + ns*(nr-1)*recuRep + (ns-1)*recuSerie;
     var nt=tp>0?dist/tp:0,tt=nt>0?te/nt:0,vol=ns*nr*dist;
-    var ia=Math.abs(vma-cv)<0.01;
-    var rc=ia?'ath':vma<=14?'':vma<=17?'z15':vma<=19?'z18':'z20';
+    var rc=isAthRow?'ath':vma<=14?'':vma<=17?'z15':vma<=19?'z18':'z20';
     var tr=document.createElement('tr');if(rc)tr.className=rc;
     tr.innerHTML='<td>'+vma.toFixed(1)+'</td>'+
       '<td class="gs cv">'+al.toFixed(2)+'</td>'+
@@ -769,7 +806,7 @@ function buildTable(){
       '<td>'+nt.toFixed(1)+'</td>'+
       '<td class="co gs">'+mmss(tt)+'</td>'+
       '<td class="gs" style="font-size:10px;font-weight:700;color:'+(sp?'#dc2626':'#16a34a')+'">'+(continu?'Continu':sp?'Supra-max':'Sous-max')+'</td>'+
-      '<td class="gs '+(sp?'crs':'cg')+'">'+(continu?'—':repLbl(recuRep))+'</td>'+
+      '<td class="gs '+(sp?'crs':'cg')+'">'+(continu?'—':repLbl(isAthRow?rrSlider:rr))+'</td>'+
       '<td class="co">'+((continu||uneSerie)?'—':mmss(recuSerie))+'</td>'+
       '<td class="gs ca">'+Math.round(vol).toLocaleString('fr-FR')+'</td>'+
       '<td class="cp">'+hms(tTot)+'</td>';
@@ -790,6 +827,12 @@ function generateSummary(){
   var rs=parseInt(document.getElementById('recuRepSlider').value)||90;
   var ss=parseInt(document.getElementById('recuSerieSlider').value)||270;
   var eff=mode==='time'?(parseFloat(document.getElementById('effortMin').value)||0)*60+(parseFloat(document.getElementById('effortSec').value)||0):0;
+  // Mode distance : recalculer teff depuis distance/allure
+  if(mode!=='time'){
+    var al=parseFloat(document.getElementById('allure').value)||0;
+    var d=parseFloat(document.getElementById('effortDist').value)||0;
+    eff=(al>0&&d>0)?d/(al/3.6):0;
+  }
   var continu=(ns===1&&nr===1), uneSerie=(ns===1&&nr>1);
   var recuRep  = continu ? 0 : rs;
   var recuSerie= (continu||uneSerie) ? 0 : ss;
@@ -802,8 +845,8 @@ function generateSummary(){
     {l:'% VMA',v:pv+'%',c:'sia'},
     {l:'Allure',v:document.getElementById('allure').value+' km/h',c:''},
     {l:'Pace',v:document.getElementById('allureMinKm').value+' /km',c:''},
-    {l:'FC max/repos',v:document.getElementById('fcMax').value+'/'+document.getElementById('fcRepos').value,c:''},
-    {l:'FC entraînement',v:document.getElementById('fcEntrain').value+' b/min',c:''},
+    {l:'FC max / FC repos',v:document.getElementById('fcMax').value+' / '+document.getElementById('fcRepos').value+' b/min',c:''},
+    {l:'FC Cible Karvonen',v:document.getElementById('fcEntrain').value+' b/min',c:''},
     {l:'Zone',v:continu?'Effort continu':pv>100?'Supra-maximale':'Sous-maximale',c:continu?'':'sig'},
     {l:"Distance d\u2019effort",v:document.getElementById('m-dist').textContent+' m',c:'sia'},
     {l:'Temps effort',v:document.getElementById('m-temps').textContent,c:''},
@@ -816,6 +859,101 @@ function generateSummary(){
     {l:'Durée séance',v:hms(tt),c:'sip'},
   ];
   document.getElementById('summaryGrid').innerHTML=its.map(function(i){return'<div class="si '+i.c+'"><div class="sil">'+i.l+'</div><div class="siv">'+i.v+'</div></div>';}).join('');
+
+  // ── Visualisation bilan : timeline + graphiques ──
+  var ns_v=ns, nr_v=nr;
+  var rs_v=parseInt(document.getElementById('recuRepSlider').value)||90;
+  var ss_v=parseInt(document.getElementById('recuSerieSlider').value)||270;
+  var continu_v=(ns_v===1&&nr_v===1), une_v=(ns_v===1&&nr_v>1);
+  var rs_e=continu_v?0:rs_v, ss_e=(continu_v||une_v)?0:ss_v;
+  var te_v=ns_v*nr_v*eff, tr_v=ns_v*(nr_v-1)*rs_e, trs_v=(ns_v-1)*ss_e, tt_v=te_v+tr_v+trs_v;
+  var pct_effort = tt_v>0?Math.round((te_v/tt_v)*100):100;
+  var pct_recup  = 100-pct_effort;
+
+  // Zone FC
+  var fmax_v=parseFloat(document.getElementById('fcMax').value)||190;
+  var frep_v=parseFloat(document.getElementById('fcRepos').value)||74;
+  var pfc_v =parseFloat(document.getElementById('pctFC').value)||95;
+  var fc_v  =karv(fmax_v,frep_v,pfc_v);
+  var zdefs_v=[{z:'Z1',mn:0,mx:60,c:'#60a5fa',n:'Récupération active'},
+               {z:'Z2',mn:60,mx:70,c:'#34d399',n:'Endurance fondamentale'},
+               {z:'Z3',mn:70,mx:80,c:'#facc15',n:'Aérobique'},
+               {z:'Z4',mn:80,mx:90,c:'#fb923c',n:'Seuil lactique'},
+               {z:'Z5',mn:90,mx:101,c:'#f87171',n:'VO₂max'}];
+  var zi_v=zdefs_v.findIndex(function(z){return pfc_v>=z.mn&&pfc_v<z.mx;}); if(zi_v<0)zi_v=4;
+  var zone_v=zdefs_v[zi_v];
+
+  // Construire le HTML de la visualisation
+  // 1) Timeline blocs
+  var mt_v=Math.max(eff,rs_e,ss_e,1);
+  function sc_v(s){return Math.max(28,Math.round((s/mt_v)*80));}
+  var md_v=Math.min(ns_v,4), mr_v=Math.min(nr_v,5);
+  var rowHTML='';
+  for(var sv=0;sv<md_v;sv++){
+    for(var rv=0;rv<mr_v;rv++){
+      rowHTML+='<div class="tlb tleff" style="width:'+sc_v(eff)+'px">'+mmss(eff)+'</div>';
+      if(rv<nr_v-1&&rs_e>0) rowHTML+='<div class="tlb tlrep" style="width:'+sc_v(rs_e)+'px">'+mmss(rs_e)+'</div>';
+    }
+    if(sv<md_v-1&&ss_e>0) rowHTML+='<div class="tlb tlser" style="width:'+sc_v(ss_e)+'px">'+mmss(ss_e)+'</div>';
+    if(ns_v>md_v&&sv===md_v-1) rowHTML+='<div style="display:flex;align-items:center;padding:0 8px;font-size:11px;color:var(--muted)">+'+(ns_v-md_v)+' série(s)…</div>';
+  }
+
+  var bilanViz=document.getElementById('bilanTimeline');
+  bilanViz.innerHTML=
+    // Titre
+    '<div style="font-family:\'Geist Mono\',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Visualisation de la séance</div>'+
+
+    // Timeline
+    '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">'+
+      '<div class="tlrow">'+rowHTML+'</div>'+
+    '</div>'+
+    '<div class="tlleg" style="margin-top:8px;">'+
+      '<div class="tllegit"><div class="tllegdot" style="background:var(--accent)"></div>Effort</div>'+
+      (rs_e>0?'<div class="tllegit"><div class="tllegdot" style="background:var(--green)"></div>Récup. rép.</div>':'')+
+      (ss_e>0?'<div class="tllegit"><div class="tllegdot" style="background:var(--orange)"></div>Récup. série</div>':'')+
+    '</div>'+
+
+    // Séparateur
+    '<div style="border-top:1px solid #e2e8f0;margin:14px 0"></div>'+
+
+    // Deux graphiques côte à côte
+    '<div style="display:flex;gap:20px;flex-wrap:wrap;">'+
+
+      // Graphique 1 : Répartition effort / repos
+      '<div style="flex:1;min-width:180px;">'+
+        '<div style="font-family:\'Geist Mono\',monospace;font-size:9px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:.1em;">Répartition du temps</div>'+
+        '<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:8px;">'+
+          '<div style="width:'+pct_effort+'%;background:var(--accent);transition:width .5s"></div>'+
+          '<div style="width:'+pct_recup+'%;background:#e2e8f0;transition:width .5s"></div>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;font-family:\'Geist Mono\',monospace;font-size:10px;">'+
+          '<span style="color:var(--accent);font-weight:600">'+pct_effort+'% effort &nbsp;'+hms(te_v)+'</span>'+
+          '<span style="color:var(--muted)">'+pct_recup+'% repos &nbsp;'+hms(tr_v+trs_v)+'</span>'+
+        '</div>'+
+        '<div style="margin-top:10px;font-family:\'Geist Mono\',monospace;font-size:10px;color:var(--muted);">'+
+          'Durée totale : <strong style="color:var(--text)">'+hms(tt_v)+'</strong>'+
+        '</div>'+
+      '</div>'+
+
+      // Graphique 2 : Zone FC
+      '<div style="flex:1;min-width:180px;">'+
+        '<div style="font-family:\'Geist Mono\',monospace;font-size:9px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:.1em;">Zone FC (Karvonen)</div>'+
+        // Barre zones
+        '<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:8px;">'+
+          zdefs_v.map(function(z){return '<div style="flex:1;background:'+z.c+';opacity:'+(z.z===zone_v.z?'1':'0.25')+';transition:opacity .3s"></div>';}).join('')+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;font-family:\'Geist Mono\',monospace;font-size:9px;color:var(--muted);">'+
+          zdefs_v.map(function(z){return '<span style="color:'+(z.z===zone_v.z?z.c:'var(--muted)')+';font-weight:'+(z.z===zone_v.z?'700':'400')+'">'+z.z+'</span>';}).join('')+
+        '</div>'+
+        '<div style="margin-top:10px;padding:8px 12px;border-radius:6px;background:'+zone_v.c+'18;border:1px solid '+zone_v.c+'40;">'+
+          '<span style="font-family:\'Geist Mono\',monospace;font-size:11px;font-weight:700;color:'+zone_v.c+'">'+zone_v.z+' — '+zone_v.n+'</span><br>'+
+          '<span style="font-family:\'Geist Mono\',monospace;font-size:10px;color:var(--muted)">FC cible : <strong style="color:var(--text)">'+fc_v+' b/min</strong> &nbsp;('+pfc_v+'% FCR)</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  bilanViz.style.display='block';
+
   var c=document.getElementById('summaryCard'); c.style.display='block'; c.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
